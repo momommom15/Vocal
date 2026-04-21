@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Word Collector</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#ffffff; --text:#111827; --muted:#6b7280; --line:#e5e7eb;
+    --primary:#2563eb; --primary-soft:#dbeafe; --danger:#dc2626; --green:#16a34a;
+    --shadow:0 8px 24px rgba(0,0,0,.08); --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);padding-bottom:86px;font-size:14px;}
+  .app{max-width:880px;margin:0 auto;padding:14px 14px 20px;}
+  .tab{display:none;}
+  .tab.active{display:block;}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:13px;margin-bottom:12px;}
+  h1,h2,h3{margin:0 0 12px;}
+  h1{font-size:21px;}
+  h2{font-size:17px;}
+  h3{font-size:14px;}
+  p{margin:6px 0;color:var(--muted);line-height:1.4;font-size:13px;}
+  .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+  .stat{background:#f9fafb;border:1px solid var(--line);border-radius:14px;padding:12px;}
+  .stat .num{font-size:21px;font-weight:700;margin-top:4px;color:var(--primary);}
+  textarea,input,select,button{font:inherit;}
+  textarea,input,select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:14px;}
+  textarea{min-height:150px;resize:vertical;}
+  button{border:none;border-radius:12px;padding:12px 14px;background:#eef0f3;color:#374151;font-weight:700;cursor:pointer;border:1px solid var(--line);}
+  button.secondary{background:#eef0f3;color:#374151;}
+  button.ghost{background:#fff;color:var(--text);border:1px solid var(--line);}
+  button.danger{background:#f3f4f6;color:#6b7280;}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .mini-actions{display:flex;align-items:center;gap:8px;justify-content:flex-end;}
+  .row > *{flex:1;min-width:120px;}
+  .toolbar-row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:10px;}
+  .icon-text-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 2px;background:transparent;color:#9ca3af;border:none;font-weight:600;box-shadow:none;}
+  .icon-text-btn span{font-size:13px;color:#9ca3af;}
+  .small{font-size:12px;color:var(--muted);}
+  .success{color:var(--green);font-weight:700;}
+  .folder-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;user-select:none;}
+  .folder-toggle .left{display:flex;align-items:center;gap:10px;}
+  .folder-toggle-title{font-weight:800;font-size:15px;}
+  .folder-tools{display:flex;align-items:center;gap:8px;}
+  .icon-btn{width:auto;height:auto;border-radius:0;padding:1px 2px;display:inline-flex;align-items:center;justify-content:center;background:transparent;color:#9ca3af;border:none;font-size:16px;font-weight:500;box-shadow:none;line-height:1;}
+  .icon-btn.primary{background:transparent;color:#9ca3af;border:none;}
+  .icon-btn.slim{width:auto;height:auto;font-size:15px;box-shadow:none;}
+  .bare-icon{color:#9ca3af;background:transparent;border:none;padding:1px 3px;}
+  .bare-icon:hover,.icon-btn:hover,.icon-text-btn:hover{color:#6b7280;}
+  .folder-panel{margin-top:12px;display:grid;gap:10px;}
+  .folder-panel.collapsed{display:none;}
+.folder-search-row{margin-top:10px;}
+.folder-search-row input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:13px;}
+  .folder-list{display:grid;gap:8px;}
+  .folder-item{padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .folder-item-left{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 auto;}
+  .folder-item-text{min-width:0;}
+  .folder-item-actions{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+    .folder-item.active{border-color:var(--primary);background:var(--primary-soft);}
+  .folder-name{font-weight:700;font-size:13px;}
+  .folder-meta{font-size:11px;color:var(--muted);}
+  .folder-arrow{font-size:14px;color:var(--muted);transition:transform .18s ease;}
+  .folder-toggle[aria-expanded="true"] .folder-arrow{transform:rotate(180deg);}
+  .modal-backdrop{position:fixed;inset:0;background:rgba(17,24,39,.45);display:none;align-items:flex-end;justify-content:center;padding:16px;z-index:20;}
+  .modal-backdrop.show{display:flex;}
+  .sheet{width:min(520px,100%);background:#fff;border-radius:20px 20px 14px 14px;box-shadow:var(--shadow);padding:18px;}
+  .sheet h3{margin-bottom:8px;}
+  .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:#fff;}
+  .search-input-wrap{display:none;flex:1;min-width:120px;}
+  .search-input-wrap.show{display:block;}
+  table{width:100%;border-collapse:collapse;min-width:560px;}
+  th,td{padding:8px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;font-size:13px;line-height:1.25;}
+  th{background:#f9fafb;font-size:12px;}
+  tr:last-child td{border-bottom:none;}
+  .word-cell{font-weight:700;}
+  .inline-input{width:100%;border:1px solid #d1d5db;border-radius:10px;padding:6px 8px;font-size:13px;}
+  .bottom-nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:center;padding:8px calc(18px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(18px + env(safe-area-inset-left));gap:22px;}
+  .bottom-nav button{background:transparent;color:#9ca3af;border:none;padding:6px 4px;font-size:18px;flex:0 0 auto;}
+  .bottom-nav button.active{color:#6b7280;}
+  .empty{padding:24px;text-align:center;color:var(--muted);}
+  .search-row{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;min-width:0;}
+  .search-row h3{margin:0;flex:1 1 auto;min-width:0;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .search-actions{display:flex;align-items:center;gap:10px;flex:0 0 auto;justify-content:flex-end;}
+  .search-row input{flex:1;min-width:0;}
+  .flash-overlay{position:fixed;inset:0;background:#fff;display:none;z-index:40;padding:calc(18px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));}
+  .flash-overlay.show{display:block;}
+  .flash-wrap{max-width:880px;height:100%;margin:0 auto;display:grid;grid-template-rows:auto auto 1fr auto;gap:14px;}
+  .flash-top{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .flash-top .meta{font-size:13px;color:var(--muted);}
+  .flash-card{background:var(--card);border-radius:22px;box-shadow:var(--shadow);padding:24px;display:flex;align-items:center;justify-content:center;text-align:center;min-height:48vh;cursor:pointer;user-select:none;-webkit-user-select:none;}
+  .flash-card .label{font-size:13px;color:var(--muted);margin-bottom:10px;}
+  .flash-card .main{font-size:34px;font-weight:800;line-height:1.2;word-break:break-word;}
+  .flash-card.back .main{font-size:28px;}
+  .flash-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+  .flash-actions button{padding:14px 10px;}
+
+  .settings-grid{display:grid;gap:12px;}
+  .setting-row{display:grid;grid-template-columns:1fr 110px;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);}
+  .setting-row:last-child{border-bottom:none;}
+  .setting-label{font-size:13px;font-weight:700;}
+  .setting-help{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.35;}
+  .setting-row input[type="number"]{padding:8px 10px;font-size:13px;}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <section id="tab-home" class="tab active">
+    <div class="card">
+      <h1>단어 수집함</h1>
+      <p>복사한 영어 문장을 아래 칸에 <strong>붙여넣는 즉시</strong> 단어를 <strong>Inbox</strong> 폴더에 자동 저장합니다.</p>
+      <div class="stats">
+        <div class="stat"><div>오늘 Inbox 추가</div><div class="num" id="todayAdded">0</div></div>
+        <div class="stat"><div>전체 단어 수</div><div class="num" id="totalWords">0</div></div>
+        <div class="stat"><div>전체 폴더 수</div><div class="num" id="totalFolders">0</div></div>
+        <div class="stat"><div>오늘 복습 카드</div><div class="num" id="totalWrong">0</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>붙여넣기 수집</h2>
+      <textarea id="pasteBox" placeholder="여기에 영어 문장이나 단어들을 붙여넣으세요. 붙여넣는 즉시 Inbox에 저장됩니다."></textarea>
+      <div class="toolbar-row">
+        <button id="readClipboardBtn" class="icon-text-btn" aria-label="클립보드 읽기">📋<span>읽기</span></button>
+        <button id="clearPasteBtn" class="icon-text-btn" aria-label="입력칸 비우기">✕<span>비우기</span></button>
+      </div>
+      <p id="saveMessage" class="small"></p>
+    </div>
+
+    
+  </section>
+
+  <section id="tab-list" class="tab">
+    <div class="card">
+      <div id="folderToggle" class="folder-toggle" aria-expanded="false">
+        <div class="left">
+          <div class="folder-toggle-title">폴더</div>
+          
+        </div>
+        <div class="folder-tools">
+          <button id="openCreateFolderBtn" class="icon-btn primary" aria-label="새 폴더 만들기">＋</button>
+          <span class="folder-arrow">⌃</span>
+        </div>
+      </div>
+      <div id="folderPanel" class="folder-panel collapsed">
+        <div id="folderGrid" class="folder-list"></div>
+      </div>
+      <div class="folder-search-row" id="searchWrap">
+        <input id="searchWord" placeholder="현재 폴더에서 검색" />
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="search-row">
+        <h3 id="currentFolderTitle">Inbox</h3>
+        <div class="search-actions">
+          <button id="addWordBtn" class="icon-btn slim" aria-label="신규 단어 추가">＋</button>
+          <button id="importFileBtn" class="icon-btn slim" aria-label="엑셀 또는 CSV 업로드">↑</button>
+          <button id="exportFolderBtn" class="icon-btn slim" aria-label="현재 폴더 내보내기">↓</button>
+          <button id="saveNowBtn" class="icon-btn slim" aria-label="지금 저장">✓</button>
+          <button id="openStudyBtn" class="icon-btn slim" aria-label="플래시카드 학습">◫</button>
+          <input id="importFileInput" type="file" accept=".csv,.xlsx,.xls" style="display:none" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:10px;">
+        <select id="moveTargetFolder"></select>
+        <div class="mini-actions">
+          <button id="moveSelectedBtn" class="icon-btn slim bare-icon" aria-label="선택 단어 이동">→</button>
+          <button id="deleteSelectedBtn" class="icon-btn slim bare-icon" aria-label="선택 단어 삭제">−</button>
+        </div>
+      </div>
+      <p id="listStatus" class="small">리스트 탭에서만 신규 단어 추가와 엑셀 업로드를 할 수 있어요. 업로드 파일은 1열 단어, 2열 뜻 형식이면 됩니다. 현재 폴더는 CSV로 내보낼 수 있고, 저장 버튼으로 바로 저장할 수 있어요.</p>
+      <div id="tableArea" class="table-wrap" style="margin-top:12px;"></div>
+    </div>
+  </section>
+
+
+  <section id="tab-settings" class="tab">
+    <div class="card">
+      <h2>설정</h2>
+      <p>학습 간격과 반복 규칙을 여기서 조절할 수 있어요.</p>
+      <div class="settings-grid">
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">다시(Again) 재등장 간격</div>
+            <div class="setting-help">같은 폴더 학습 중 다시 누른 카드가 몇 장 뒤에 다시 나올지</div>
+          </div>
+          <input id="settingAgainGap" type="number" min="1" max="20" />
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">어려움(Hard) 재등장 간격</div>
+            <div class="setting-help">어려움 카드를 몇 장 뒤에 다시 볼지</div>
+          </div>
+          <input id="settingHardGap" type="number" min="1" max="50" />
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">쉬움(Easy) 기본 간격</div>
+            <div class="setting-help">쉬움을 누르면 다음 복습까지 며칠 뒤로 보낼지</div>
+          </div>
+          <input id="settingEasyDays" type="number" min="1" max="365" />
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">어려움(Hard) 기본 간격</div>
+            <div class="setting-help">어려움을 누르면 다음 복습까지 며칠 뒤로 보낼지</div>
+          </div>
+          <input id="settingHardDays" type="number" min="1" max="180" />
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">다시(Again) 기본 간격</div>
+            <div class="setting-help">다시를 누르면 다음 복습까지 며칠 뒤로 보낼지</div>
+          </div>
+          <input id="settingAgainDays" type="number" min="0" max="30" />
+        </div>
+        <div class="setting-row">
+          <div>
+            <div class="setting-label">하루 최대 복습 카드 수</div>
+            <div class="setting-help">오늘 복습 대상으로 잡을 최대 카드 수</div>
+          </div>
+          <input id="settingDailyLimit" type="number" min="5" max="500" />
+        </div>
+      </div>
+      <div class="toolbar-row">
+        <button id="saveSettingsBtn" class="icon-text-btn" aria-label="설정 저장">💾<span>저장</span></button>
+      </div>
+      <p id="settingsStatus" class="small">설정은 자동 저장됩니다.</p>
+    </div>
+  </section>
+
+  <div id="createFolderModal" class="modal-backdrop" aria-hidden="true">
+    <div class="sheet">
+      <h3>새 폴더 만들기</h3>
+      <p class="small">폴더 이름만 입력하면 바로 추가됩니다.</p>
+      <input id="newFolderName" placeholder="새 폴더 이름" />
+      <div class="row" style="margin-top:12px;">
+        <button id="closeCreateFolderBtn" class="ghost">취소</button>
+        <button id="createFolderBtn">만들기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="addWordModal" class="modal-backdrop" aria-hidden="true">
+    <div class="sheet">
+      <h3>신규 단어 추가</h3>
+      <p class="small">현재 폴더에 단어를 바로 추가합니다.</p>
+      <div class="row">
+        <input id="listAddWord" placeholder="단어" />
+        <input id="listAddMeaning" placeholder="뜻" />
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button id="closeAddWordBtn" class="ghost">취소</button>
+        <button id="confirmAddWordBtn">추가</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="flashOverlay" class="flash-overlay" aria-hidden="true">
+    <div class="flash-wrap">
+      <div class="flash-top">
+        <button id="closeStudyBtn" class="icon-text-btn">✕</button>
+        <div class="meta" id="flashFolderLabel">현재 폴더: Inbox</div>
+        <div class="meta" id="flashProgress">0 / 0</div>
+      </div>
+      <div class="card" style="margin:0;">
+        <h2 style="margin-bottom:0;">플래시카드 학습</h2>
+        <p class="small" id="flashHint">카드를 탭하면 뜻이 보여요.</p>
+      </div>
+      <div class="flash-card" id="flashCard" role="button" tabindex="0" aria-label="플래시카드">
+        <div>
+          <div class="label" id="flashFaceLabel">앞면 · 단어</div>
+          <div class="main" id="flashMainText">시작하기</div>
+        </div>
+      </div>
+      <div class="flash-actions">
+        <button id="againBtn" class="danger" disabled>다시</button>
+        <button id="hardBtn" class="secondary" disabled>어려움</button>
+        <button id="easyBtn" class="secondary" disabled>쉬움</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button data-tab="home" class="active" aria-label="홈">⌂</button>
+  <button data-tab="list" aria-label="리스트">≣</button>
+  <button data-tab="settings" aria-label="설정">⚙︎</button>
+</nav>
+
+<script>
+(() => {
+  const STORAGE_KEY = 'word_collector_flash_inline_settings_v1';
+  const DEFAULT_STATE = {
+    folders: { Inbox: [] },
+    ui: { currentFolder: 'Inbox', folderPanelOpen: false, searchOpen: true },
+    settings: { againGap: 2, hardGap: 4, easyDays: 3, hardDays: 1, againDays: 0, dailyLimit: 30 }
+  };
+
+  const starterDict = {
+    bank:'은행', governor:'총재', inflation:'물가상승', rate:'비율 / 금리', economy:'경제',
+    foreign:'외국의', exchange:'환율 / 교환', approve:'승인하다', issue:'문제 / 발행하다',
+    charge:'요금 / 청구하다', submit:'제출하다', current:'현재의 / 경상', capital:'자본',
+    report:'보고하다 / 보고서', settlement:'정산 / 합의', resident:'거주자', nonresident:'비거주자',
+    transfer:'이전 / 이체하다', payment:'지급', company:'회사', branch:'지점', office:'사무실',
+    export:'수출', import:'수입', account:'계정 / 계좌', duty:'의무 / 관세', note:'노트', word:'단어'
+  };
+
+  const els = {
+    tabs: document.querySelectorAll('.tab'),
+    navButtons: document.querySelectorAll('.bottom-nav button'),
+    todayAdded: document.getElementById('todayAdded'),
+    totalWords: document.getElementById('totalWords'),
+    totalFolders: document.getElementById('totalFolders'),
+    totalWrong: document.getElementById('totalWrong'),
+    pasteBox: document.getElementById('pasteBox'),
+    readClipboardBtn: document.getElementById('readClipboardBtn'),
+    clearPasteBtn: document.getElementById('clearPasteBtn'),
+    saveMessage: document.getElementById('saveMessage'),
+    addWordBtn: document.getElementById('addWordBtn'),
+    importFileBtn: document.getElementById('importFileBtn'),
+    exportFolderBtn: document.getElementById('exportFolderBtn'),
+    saveNowBtn: document.getElementById('saveNowBtn'),
+    listStatus: document.getElementById('listStatus'),
+    importFileInput: document.getElementById('importFileInput'),
+    addWordModal: document.getElementById('addWordModal'),
+    listAddWord: document.getElementById('listAddWord'),
+    listAddMeaning: document.getElementById('listAddMeaning'),
+    closeAddWordBtn: document.getElementById('closeAddWordBtn'),
+    confirmAddWordBtn: document.getElementById('confirmAddWordBtn'),
+    folderToggle: document.getElementById('folderToggle'),
+    folderPanel: document.getElementById('folderPanel'),
+    openCreateFolderBtn: document.getElementById('openCreateFolderBtn'),
+    createFolderModal: document.getElementById('createFolderModal'),
+    closeCreateFolderBtn: document.getElementById('closeCreateFolderBtn'),
+    newFolderName: document.getElementById('newFolderName'),
+    createFolderBtn: document.getElementById('createFolderBtn'),
+    folderGrid: document.getElementById('folderGrid'),
+    currentFolderTitle: document.getElementById('currentFolderTitle'),
+    searchWrap: document.getElementById('searchWrap'),
+    toggleSearchBtn: document.getElementById('toggleSearchBtn'),
+    searchWord: document.getElementById('searchWord'),
+    openStudyBtn: document.getElementById('openStudyBtn'),
+    moveTargetFolder: document.getElementById('moveTargetFolder'),
+    moveSelectedBtn: document.getElementById('moveSelectedBtn'),
+    deleteSelectedBtn: document.getElementById('deleteSelectedBtn'),
+    tableArea: document.getElementById('tableArea'),
+    flashOverlay: document.getElementById('flashOverlay'),
+    closeStudyBtn: document.getElementById('closeStudyBtn'),
+    flashFolderLabel: document.getElementById('flashFolderLabel'),
+    flashProgress: document.getElementById('flashProgress'),
+    flashHint: document.getElementById('flashHint'),
+    flashCard: document.getElementById('flashCard'),
+    flashFaceLabel: document.getElementById('flashFaceLabel'),
+    flashMainText: document.getElementById('flashMainText'),
+    againBtn: document.getElementById('againBtn'),
+    hardBtn: document.getElementById('hardBtn'),
+    easyBtn: document.getElementById('easyBtn'),
+    settingAgainGap: document.getElementById('settingAgainGap'),
+    settingHardGap: document.getElementById('settingHardGap'),
+    settingEasyDays: document.getElementById('settingEasyDays'),
+    settingHardDays: document.getElementById('settingHardDays'),
+    settingAgainDays: document.getElementById('settingAgainDays'),
+    settingDailyLimit: document.getElementById('settingDailyLimit'),
+    saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+    settingsStatus: document.getElementById('settingsStatus')
+  };
+
+  let state = loadState();
+  let selectedIds = new Set();
+  let studyQueue = [];
+  let studyIndex = 0;
+  let showMeaning = false;
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return structuredClone(DEFAULT_STATE);
+      const parsed = JSON.parse(raw);
+      if (!parsed.folders || typeof parsed.folders !== 'object') parsed.folders = { Inbox: [] };
+      if (!parsed.folders.Inbox) parsed.folders.Inbox = [];
+      if (!parsed.ui) parsed.ui = { currentFolder: 'Inbox', folderPanelOpen: false, searchOpen: false };
+      if (!parsed.ui.currentFolder || !parsed.folders[parsed.ui.currentFolder]) parsed.ui.currentFolder = 'Inbox';
+      if (typeof parsed.ui.folderPanelOpen !== 'boolean') parsed.ui.folderPanelOpen = false;
+      if (typeof parsed.ui.searchOpen !== 'boolean') parsed.ui.searchOpen = false;
+      if (!parsed.settings || typeof parsed.settings !== 'object') parsed.settings = {};
+      parsed.settings = {
+        againGap: Number.isFinite(Number(parsed.settings.againGap)) ? Number(parsed.settings.againGap) : 2,
+        hardGap: Number.isFinite(Number(parsed.settings.hardGap)) ? Number(parsed.settings.hardGap) : 4,
+        easyDays: Number.isFinite(Number(parsed.settings.easyDays)) ? Number(parsed.settings.easyDays) : 3,
+        hardDays: Number.isFinite(Number(parsed.settings.hardDays)) ? Number(parsed.settings.hardDays) : 1,
+        againDays: Number.isFinite(Number(parsed.settings.againDays)) ? Number(parsed.settings.againDays) : 0,
+        dailyLimit: Number.isFinite(Number(parsed.settings.dailyLimit)) ? Number(parsed.settings.dailyLimit) : 30
+      };
+      Object.keys(parsed.folders).forEach(name => { if (!Array.isArray(parsed.folders[name])) parsed.folders[name] = []; });
+      Object.values(parsed.folders).flat().forEach(item => {
+        if (!item.nextReviewDate) item.nextReviewDate = todayKey();
+        if (!Number.isFinite(Number(item.studyCount))) item.studyCount = 0;
+        if (!Number.isFinite(Number(item.wrongCount))) item.wrongCount = 0;
+      });
+      return parsed;
+    } catch (e) {
+      return structuredClone(DEFAULT_STATE);
+    }
+  }
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    setListStatus(`저장됨 · ${new Date().toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' })}`);
+  }
+  function setListStatus(text, success=true) {
+    if (!els.listStatus) return;
+    els.listStatus.textContent = text;
+    els.listStatus.className = success ? 'small success' : 'small';
+  }
+  function makeId() { return 'w_' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
+  function downloadBlob(filename, blob) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 500);
+  }
+  function exportCurrentFolderCsv() {
+    const folderName = state.ui.currentFolder;
+    const rows = [['word','meaning','wrongCount','studyCount'], ...(state.folders[folderName] || []).map(item => [item.word, item.meaning || '', item.wrongCount || 0, item.studyCount || 0])];
+    const csv = rows.map(row => row.map(cell => {
+      const s = String(cell ?? '');
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+    }).join(',')).join('\n');
+    downloadBlob(`${folderName}.csv`, new Blob([csv], { type:'text/csv;charset=utf-8;' }));
+    setListStatus(`${folderName} 폴더를 CSV로 내보냈어요.`);
+  }
+  function exportAllJson() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json;charset=utf-8;' });
+    downloadBlob(`word-collector-backup-${todayKey()}.json`, blob);
+    setListStatus('전체 데이터를 JSON으로 백업했어요.');
+  }
+  function normalizeWord(word) { return word.trim().toLowerCase(); }
+  function getMeaning(word) { return starterDict[normalizeWord(word)] || '뜻 입력'; }
+  function todayKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function addDays(baseDate, days) {
+    const d = new Date(baseDate);
+    d.setDate(d.getDate() + Number(days || 0));
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function getDueItems(folder) {
+    const today = todayKey();
+    return (state.folders[folder] || []).filter(item => !item.nextReviewDate || item.nextReviewDate <= today);
+  }
+  function clampSetting(value, min, max, fallback) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.max(min, Math.min(max, Math.round(n)));
+  }
+  function ensureFolder(name) {
+    const clean = (name || '').trim();
+    if (!clean) return null;
+    if (!state.folders[clean]) state.folders[clean] = [];
+    return clean;
+  }
+  function extractWords(text) {
+    if (!text) return [];
+    const matches = text.match(/[A-Za-z][A-Za-z'’-]*/g) || [];
+    const ignore = new Set(['the','a','an','and','or','but','if','then','this','that','these','those','to','of','in','on','at','for','from','with','by','as','is','are','was','were','be','been','being','am','it','its','he','she','they','them','his','her','their','we','you','i','me','my','our','your','do','does','did','done','have','has','had','can','could','will','would','should','may','might','not']);
+    const unique = [];
+    const seen = new Set();
+    for (const raw of matches) {
+      const w = raw.replace(/[’']/g, "'").replace(/^-+|-+$/g,'').toLowerCase();
+      if (w.length < 2 || ignore.has(w) || seen.has(w)) continue;
+      seen.add(w);
+      unique.push(w);
+    }
+    return unique;
+  }
+  function addWordToFolder(folderName, word, meaning='') {
+    const folder = state.folders[folderName];
+    const key = normalizeWord(word);
+    const existing = folder.find(item => normalizeWord(item.word) === key);
+    if (existing) {
+      if ((!existing.meaning || existing.meaning === '뜻 입력') && meaning) existing.meaning = meaning;
+      existing.updatedAt = Date.now();
+      return { added:false, item:existing };
+    }
+    const item = { id: makeId(), word: key, meaning: meaning || getMeaning(key), wrongCount: 0, createdDate: todayKey(), updatedAt: Date.now(), studyCount: 0, nextReviewDate: todayKey() };
+    folder.push(item);
+    return { added:true, item };
+  }
+  function savePastedTextToInbox(text) {
+    const words = extractWords(text);
+    let added = 0;
+    words.forEach(word => { if (addWordToFolder('Inbox', word, getMeaning(word)).added) added += 1; });
+    saveState();
+    renderAll();
+    return { added, total: words.length };
+  }
+  function renderStats() {
+    const allItems = Object.values(state.folders).flat();
+    els.totalWords.textContent = allItems.length;
+    els.totalFolders.textContent = Object.keys(state.folders).length;
+    els.totalWrong.textContent = allItems.filter(item => !item.nextReviewDate || item.nextReviewDate <= todayKey()).length;
+    els.todayAdded.textContent = (state.folders.Inbox || []).filter(item => item.createdDate === todayKey()).length;
+  }
+  function renderFolderOptions() {
+    const names = Object.keys(state.folders);
+    const moveOpts = names.filter(n => n !== state.ui.currentFolder).map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
+    els.moveTargetFolder.innerHTML = moveOpts || '<option value="">이동할 폴더 없음</option>';
+  }
+  function renderFolderGrid() {
+    const names = Object.keys(state.folders);
+    els.folderGrid.innerHTML = names.map(name => {
+      const count = state.folders[name].length;
+      const active = name === state.ui.currentFolder ? 'active' : '';
+      const locked = name === 'Inbox';
+      return `<div class="folder-item ${active}" data-folder="${escapeHtml(name)}">
+        <div class="folder-item-left">
+          <div class="folder-item-text">
+            <div class="folder-name">${escapeHtml(name)}</div>
+            <div class="folder-meta">${count}개 단어${locked ? ' · 기본 폴더' : ''}</div>
+          </div>
+        </div>
+        <div class="folder-item-actions">
+          ${locked ? '' : `<button type="button" class="icon-btn slim bare-icon folder-rename-btn" data-folder-rename="${escapeHtml(name)}" aria-label="${escapeHtml(name)} 이름 변경">✎</button>
+          <button type="button" class="icon-btn slim bare-icon folder-delete-btn" data-folder-delete="${escapeHtml(name)}" aria-label="${escapeHtml(name)} 삭제">−</button>`}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderFolderPanelState() {
+    els.folderPanel.classList.toggle('collapsed', !state.ui.folderPanelOpen);
+    els.folderToggle.setAttribute('aria-expanded', String(state.ui.folderPanelOpen));
+  }
+  function renderSearchState() {
+    if (els.searchWrap) els.searchWrap.classList.add('show');
+  }
+  function renameFolderByName(oldName) {
+    if (!oldName || oldName === 'Inbox') return alert('Inbox는 이름을 바꿀 수 없어요.');
+    const newName = prompt('새 폴더 이름', oldName);
+    if (newName === null) return;
+    const trimmed = newName.trim();
+    if (!trimmed) return alert('폴더 이름을 입력해주세요.');
+    if (trimmed === oldName) return;
+    if (state.folders[trimmed]) return alert('같은 이름의 폴더가 이미 있어요.');
+    state.folders[trimmed] = state.folders[oldName] || [];
+    delete state.folders[oldName];
+    if (state.ui.currentFolder === oldName) state.ui.currentFolder = trimmed;
+    saveState();
+    renderAll();
+    setListStatus(`폴더 이름을 ${trimmed}(으)로 변경했어요.`);
+  }
+  function deleteFolderByName(name) {
+    if (!name || name === 'Inbox') return alert('Inbox는 삭제할 수 없어요.');
+    const ok = confirm(`${name} 폴더를 삭제할까요? 안의 단어는 Inbox로 이동합니다.`);
+    if (!ok) return;
+    const items = state.folders[name] || [];
+    items.forEach(item => addWordToFolder('Inbox', item.word, item.meaning));
+    delete state.folders[name];
+    if (state.ui.currentFolder === name) state.ui.currentFolder = 'Inbox';
+    saveState();
+    renderAll();
+    setListStatus(`${name} 폴더를 삭제하고 단어는 Inbox로 옮겼어요.`);
+  }
+  function getCurrentFolderItems() {
+    const items = state.folders[state.ui.currentFolder] || [];
+    const q = els.searchWord.value.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(item => item.word.includes(q) || (item.meaning || '').toLowerCase().includes(q));
+  }
+  function renderTable() {
+    const items = getCurrentFolderItems();
+    els.currentFolderTitle.textContent = state.ui.currentFolder;
+    if (!items.length) {
+      els.tableArea.innerHTML = `<div class="empty">이 폴더에는 아직 단어가 없어요.</div>`;
+      return;
+    }
+    const rows = items.map(item => `
+      <tr>
+        <td><input type="checkbox" class="row-check" data-id="${item.id}" ${selectedIds.has(item.id) ? 'checked' : ''}></td>
+        <td class="word-cell">${escapeHtml(item.word)}</td>
+        <td><input class="inline-input meaning-input" data-id="${item.id}" value="${escapeAttr(item.meaning || '')}" /></td>
+        <td>${item.wrongCount || 0}</td>
+        <td>${escapeHtml(item.nextReviewDate || todayKey())}</td>
+        <td><button class="icon-btn slim bare-icon single-delete" data-id="${item.id}" aria-label="삭제">🗑</button></td>
+      </tr>
+    `).join('');
+    els.tableArea.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="checkAll"></th>
+            <th>단어</th>
+            <th>뜻</th>
+            <th>틀린횟수</th>
+            <th>다음복습</th>
+            <th>관리</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  function renderSettings() {
+    els.settingAgainGap.value = state.settings.againGap;
+    els.settingHardGap.value = state.settings.hardGap;
+    els.settingEasyDays.value = state.settings.easyDays;
+    els.settingHardDays.value = state.settings.hardDays;
+    els.settingAgainDays.value = state.settings.againDays;
+    els.settingDailyLimit.value = state.settings.dailyLimit;
+  }
+  function saveSettingsFromInputs() {
+    state.settings.againGap = clampSetting(els.settingAgainGap.value, 1, 20, state.settings.againGap);
+    state.settings.hardGap = clampSetting(els.settingHardGap.value, 1, 50, state.settings.hardGap);
+    state.settings.easyDays = clampSetting(els.settingEasyDays.value, 1, 365, state.settings.easyDays);
+    state.settings.hardDays = clampSetting(els.settingHardDays.value, 1, 180, state.settings.hardDays);
+    state.settings.againDays = clampSetting(els.settingAgainDays.value, 0, 30, state.settings.againDays);
+    state.settings.dailyLimit = clampSetting(els.settingDailyLimit.value, 5, 500, state.settings.dailyLimit);
+    renderSettings();
+    saveState();
+    els.settingsStatus.textContent = `설정 저장됨 · ${new Date().toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' })}`;
+    els.settingsStatus.className = 'small success';
+  }
+
+  function renderAll() {
+    renderStats();
+    renderFolderOptions();
+    renderFolderGrid();
+    renderFolderPanelState();
+    renderSearchState();
+    renderTable();
+    renderSettings();
+  }
+  function setMessage(text, type='normal') {
+    els.saveMessage.textContent = text;
+    els.saveMessage.className = type === 'success' ? 'small success' : 'small';
+  }
+  function openAddWordModal() {
+    els.addWordModal.classList.add('show');
+    els.addWordModal.setAttribute('aria-hidden', 'false');
+    els.listAddWord.value = '';
+    els.listAddMeaning.value = '';
+    setTimeout(() => els.listAddWord.focus(), 30);
+  }
+  function closeAddWordModal() {
+    els.addWordModal.classList.remove('show');
+    els.addWordModal.setAttribute('aria-hidden', 'true');
+  }
+  function addWordFromListModal() {
+    const word = els.listAddWord.value.trim();
+    const meaning = els.listAddMeaning.value.trim();
+    if (!word) return alert('단어를 입력해주세요.');
+    addWordToFolder(state.ui.currentFolder, word, meaning);
+    saveState();
+    renderAll();
+    closeAddWordModal();
+  }
+  function parseCsvText(text) {
+    return text.split(/\r?\n/).map(line => line.trim()).filter(Boolean).map(line => {
+      const parts = line.split(',');
+      return [parts[0] || '', parts.slice(1).join(',') || ''];
+    });
+  }
+  function importRowsToCurrentFolder(rows) {
+    let added = 0;
+    rows.forEach((row, idx) => {
+      if (!row) return;
+      const word = String(row[0] ?? '').trim();
+      const meaning = String(row[1] ?? '').trim();
+      if (!word) return;
+      if (idx === 0 && /^(word|단어)$/i.test(word) && /^(meaning|뜻)?$/i.test(meaning)) return;
+      if (addWordToFolder(state.ui.currentFolder, word, meaning).added) added += 1;
+    });
+    saveState();
+    renderAll();
+    return added;
+  }
+  async function ensureXlsxLib() {
+    if (window.XLSX) return true;
+    return new Promise(resolve => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.head.appendChild(script);
+    });
+  }
+  async function handleImportFile(file) {
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (name.endsWith('.csv')) {
+      const text = await file.text();
+      const added = importRowsToCurrentFolder(parseCsvText(text));
+      setListStatus(`${added}개 단어를 ${state.ui.currentFolder}에 가져왔어요.`);
+      alert(`${added}개 단어를 ${state.ui.currentFolder}에 가져왔어요.`);
+      return;
+    }
+    if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
+      const ok = await ensureXlsxLib();
+      if (!ok) return alert('엑셀 라이브러리를 불러오지 못했어요. CSV 업로드를 사용해주세요.');
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type:'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header:1, raw:false });
+      const added = importRowsToCurrentFolder(rows);
+      alert(`${added}개 단어를 ${state.ui.currentFolder}에 가져왔어요.`);
+      return;
+    }
+    alert('CSV, XLSX, XLS 파일만 업로드할 수 있어요.');
+  }
+  function openCreateFolderModal() {
+    els.createFolderModal.classList.add('show');
+    els.createFolderModal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => els.newFolderName.focus(), 30);
+  }
+  function closeCreateFolderModal() {
+    els.createFolderModal.classList.remove('show');
+    els.createFolderModal.setAttribute('aria-hidden', 'true');
+    els.newFolderName.value = '';
+  }
+  function switchTab(name) {
+    els.tabs.forEach(tab => tab.classList.remove('active'));
+    document.getElementById(`tab-${name}`).classList.add('active');
+    els.navButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === name));
+    if (name === 'list' || name === 'settings') renderAll();
+  }
+  function escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  }
+  function escapeAttr(text) { return escapeHtml(text); }
+  function moveSelectedWords() {
+    const target = els.moveTargetFolder.value;
+    if (!target) return alert('이동할 폴더를 선택해주세요.');
+    if (!selectedIds.size) return alert('먼저 단어를 선택해주세요.');
+    const fromItems = state.folders[state.ui.currentFolder];
+    const moving = fromItems.filter(item => selectedIds.has(item.id));
+    moving.forEach(item => addWordToFolder(target, item.word, item.meaning));
+    state.folders[state.ui.currentFolder] = fromItems.filter(item => !selectedIds.has(item.id));
+    selectedIds.clear();
+    saveState();
+    renderAll();
+  }
+  function deleteSelectedWords() {
+    if (!selectedIds.size) return alert('먼저 단어를 선택해주세요.');
+    state.folders[state.ui.currentFolder] = state.folders[state.ui.currentFolder].filter(item => !selectedIds.has(item.id));
+    selectedIds.clear();
+    saveState();
+    renderAll();
+  }
+
+  function openStudyOverlay() {
+    const folder = state.ui.currentFolder;
+    const items = [...getDueItems(folder)].slice(0, state.settings.dailyLimit);
+    els.flashFolderLabel.textContent = `현재 폴더: ${folder} · 오늘 ${items.length}개`;
+    if (!items.length) {
+      studyQueue = [];
+      studyIndex = 0;
+      showMeaning = false;
+      renderStudyCard();
+      els.flashOverlay.classList.add('show');
+      els.flashOverlay.setAttribute('aria-hidden', 'false');
+      return;
+    }
+    items.sort((a,b) => (b.wrongCount || 0) - (a.wrongCount || 0));
+    studyQueue = items;
+    studyIndex = 0;
+    showMeaning = false;
+    renderStudyCard();
+    els.flashOverlay.classList.add('show');
+    els.flashOverlay.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeStudyOverlay() {
+    els.flashOverlay.classList.remove('show');
+    els.flashOverlay.setAttribute('aria-hidden', 'true');
+  }
+
+  function renderStudyCard() {
+    if (!studyQueue.length) {
+      els.flashProgress.textContent = '0 / 0';
+      els.flashFaceLabel.textContent = '앞면 · 단어';
+      els.flashMainText.textContent = '단어 없음';
+      els.flashHint.textContent = '현재 폴더에 학습할 단어가 없어요.';
+      els.flashCard.classList.remove('back');
+      [els.againBtn, els.hardBtn, els.easyBtn].forEach(btn => btn.disabled = true);
+      return;
+    }
+    const item = studyQueue[studyIndex % studyQueue.length];
+    const isBack = showMeaning;
+    els.flashProgress.textContent = `${(studyIndex % studyQueue.length) + 1} / ${studyQueue.length}`;
+    els.flashFaceLabel.textContent = isBack ? '뒷면 · 뜻' : '앞면 · 단어';
+    els.flashMainText.textContent = isBack ? (item.meaning || '뜻 입력') : item.word;
+    els.flashHint.textContent = isBack ? '아래에서 다시, 어려움, 쉬움을 선택하세요.' : '카드를 탭하면 뜻이 보여요.';
+    els.flashCard.classList.toggle('back', isBack);
+    els.againBtn.disabled = !isBack;
+    els.hardBtn.disabled = !isBack;
+    els.easyBtn.disabled = !isBack;
+  }
+
+  function markStudy(level) {
+    if (!studyQueue.length || !showMeaning) return;
+    const current = studyQueue[studyIndex % studyQueue.length];
+    const found = (state.folders[state.ui.currentFolder] || []).find(item => item.id === current.id);
+    if (found) {
+      found.studyCount = (found.studyCount || 0) + 1;
+      if (level === 'again') found.wrongCount = (found.wrongCount || 0) + 1;
+      const days = level === 'again' ? state.settings.againDays : (level === 'hard' ? state.settings.hardDays : state.settings.easyDays);
+      found.nextReviewDate = addDays(new Date(), days);
+      found.updatedAt = Date.now();
+    }
+    if (level === 'again') {
+      studyQueue.splice(Math.min(studyIndex + state.settings.againGap, studyQueue.length), 0, current);
+    } else if (level === 'hard') {
+      studyQueue.splice(Math.min(studyIndex + state.settings.hardGap, studyQueue.length), 0, current);
+    }
+    saveState();
+    renderStats();
+    studyIndex += 1;
+    showMeaning = false;
+    renderStudyCard();
+    renderTable();
+  }
+
+  els.navButtons.forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+  els.pasteBox.addEventListener('paste', (e) => {
+    const text = e.clipboardData?.getData('text') || '';
+    if (!text) return;
+    e.preventDefault();
+    const result = savePastedTextToInbox(text);
+    els.pasteBox.value = '';
+    setMessage(`Inbox에 ${result.added}개 단어를 저장했어요.`, 'success');
+  });
+  els.readClipboardBtn.addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      const result = savePastedTextToInbox(text);
+      setMessage(`클립보드에서 ${result.added}개 단어를 Inbox에 저장했어요.`, 'success');
+    } catch (e) {
+      setMessage('클립보드를 읽지 못했어요. 직접 붙여넣기를 사용해주세요.');
+    }
+  });
+  els.clearPasteBtn.addEventListener('click', () => {
+    els.pasteBox.value = '';
+    setMessage('입력칸을 비웠어요.');
+  });
+
+  [els.settingAgainGap, els.settingHardGap, els.settingEasyDays, els.settingHardDays, els.settingAgainDays, els.settingDailyLimit]
+    .forEach(input => input.addEventListener('change', saveSettingsFromInputs));
+  els.saveSettingsBtn.addEventListener('click', saveSettingsFromInputs);
+
+  els.addWordBtn.addEventListener('click', openAddWordModal);
+  els.closeAddWordBtn.addEventListener('click', closeAddWordModal);
+  els.confirmAddWordBtn.addEventListener('click', addWordFromListModal);
+  els.addWordModal.addEventListener('click', (e) => { if (e.target === els.addWordModal) closeAddWordModal(); });
+  els.listAddWord.addEventListener('keydown', (e) => { if (e.key === 'Enter') els.confirmAddWordBtn.click(); });
+  els.listAddMeaning.addEventListener('keydown', (e) => { if (e.key === 'Enter') els.confirmAddWordBtn.click(); });
+  els.importFileBtn.addEventListener('click', () => els.importFileInput.click());
+  els.exportFolderBtn.addEventListener('click', exportCurrentFolderCsv);
+  els.saveNowBtn.addEventListener('click', () => {
+    saveState();
+    setListStatus('지금 상태를 로컬에 저장했어요.');
+  });
+  els.importFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    try {
+      await handleImportFile(file);
+    } finally {
+      e.target.value = '';
+    }
+  });
+
+  els.openCreateFolderBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openCreateFolderModal();
+  });
+  els.folderToggle.addEventListener('click', () => {
+    state.ui.folderPanelOpen = !state.ui.folderPanelOpen;
+    saveState();
+    renderFolderPanelState();
+  });
+  els.closeCreateFolderBtn.addEventListener('click', closeCreateFolderModal);
+  els.createFolderModal.addEventListener('click', (e) => { if (e.target === els.createFolderModal) closeCreateFolderModal(); });
+  els.createFolderBtn.addEventListener('click', () => {
+    const name = ensureFolder(els.newFolderName.value);
+    if (!name) return alert('폴더 이름을 입력해주세요.');
+    state.ui.currentFolder = name;
+    state.ui.folderPanelOpen = false;
+    state.ui.searchOpen = false;
+    saveState();
+    renderAll();
+    closeCreateFolderModal();
+  });
+  els.newFolderName.addEventListener('keydown', (e) => { if (e.key === 'Enter') els.createFolderBtn.click(); });
+  els.renameFolderInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !els.renameFolderInput.disabled) els.renameFolderBtn.click(); });
+  els.folderGrid.addEventListener('click', (e) => {
+    const renameBtn = e.target.closest('.folder-rename-btn');
+    if (renameBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      renameFolderByName(renameBtn.getAttribute('data-folder-rename'));
+      return;
+    }
+    const deleteBtn = e.target.closest('.folder-delete-btn');
+    if (deleteBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      deleteFolderByName(deleteBtn.getAttribute('data-folder-delete'));
+      return;
+    }
+    const folderEl = e.target.closest('.folder-item[data-folder]');
+    if (!folderEl) return;
+    state.ui.currentFolder = folderEl.getAttribute('data-folder');
+    state.ui.folderPanelOpen = false;
+    selectedIds.clear();
+    saveState();
+    renderAll();
+  });
+
+  if (els.toggleSearchBtn) {
+    els.toggleSearchBtn.addEventListener('click', () => {
+      state.ui.searchOpen = !state.ui.searchOpen;
+      renderSearchState();
+      if (state.ui.searchOpen) setTimeout(() => els.searchWord.focus(), 30);
+      renderTable();
+    });
+  }
+  els.searchWord.addEventListener('input', renderTable);
+  els.openStudyBtn.addEventListener('click', openStudyOverlay);
+  els.closeStudyBtn.addEventListener('click', closeStudyOverlay);
+  els.moveSelectedBtn.addEventListener('click', moveSelectedWords);
+  els.deleteSelectedBtn.addEventListener('click', deleteSelectedWords);
+
+  els.tableArea.addEventListener('change', (e) => {
+    if (e.target.id === 'checkAll') {
+      const checked = e.target.checked;
+      document.querySelectorAll('.row-check').forEach(box => {
+        box.checked = checked;
+        if (checked) selectedIds.add(box.dataset.id); else selectedIds.delete(box.dataset.id);
+      });
+      return;
+    }
+    if (e.target.classList.contains('row-check')) {
+      const id = e.target.dataset.id;
+      if (e.target.checked) selectedIds.add(id); else selectedIds.delete(id);
+      return;
+    }
+    if (e.target.classList.contains('meaning-input')) {
+      const id = e.target.dataset.id;
+      const items = state.folders[state.ui.currentFolder] || [];
+      const item = items.find(x => x.id === id);
+      if (item) {
+        item.meaning = e.target.value;
+        item.updatedAt = Date.now();
+        saveState();
+      }
+    }
+  });
+  els.tableArea.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('single-delete')) return;
+    const id = e.target.dataset.id;
+    state.folders[state.ui.currentFolder] = state.folders[state.ui.currentFolder].filter(item => item.id !== id);
+    selectedIds.delete(id);
+    saveState();
+    renderAll();
+  });
+
+  els.flashCard.addEventListener('click', () => {
+    if (!studyQueue.length) return;
+    showMeaning = !showMeaning;
+    renderStudyCard();
+  });
+  els.flashCard.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (!studyQueue.length) return;
+      showMeaning = !showMeaning;
+      renderStudyCard();
+    }
+  });
+  els.againBtn.addEventListener('click', () => markStudy('again'));
+  els.hardBtn.addEventListener('click', () => markStudy('hard'));
+  els.easyBtn.addEventListener('click', () => markStudy('easy'));
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeCreateFolderModal();
+      closeStudyOverlay();
+    }
+  });
+
+  renderAll();
+  setListStatus('자동 저장 켜짐');
+  if (els.settingsStatus) els.settingsStatus.textContent = '설정은 자동 저장됩니다.';
+  renderStudyCard();
+})();
+</script>
+</body>
+</html>
